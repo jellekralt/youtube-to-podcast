@@ -17,6 +17,8 @@ const generateRSS = require('./src/podcast-rss');
 app.get('/audio/:id/podcast.mp3', function (req, res) {
     let audio = ytdl('https://www.youtube.com/watch?v=' + req.params.id, { filter: 'audioonly' });
 
+    console.log('hiiiiiiiiiiii');
+
     ffmpeg(audio)
         .audioCodec('libmp3lame')
         .audioBitrate(128)
