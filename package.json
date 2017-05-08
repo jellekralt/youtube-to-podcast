@@ -1,0 +1,16 @@
+{
+  "name": "youtube-to-podcast",
+  "version": "0.1.0",
+  "description": "Simple Node.js server that creates a podcast RSS feed based on a YouTube playlist",
+  "main": "index.js",
+  "repository": "s",
+  "author": "Jelle Kralt <jelle@jellekralt.nl>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.15.2",
+    "fluent-ffmpeg": "^2.1.2",
+    "rss": "^1.2.2",
+    "xml2js": "^0.4.17",
+    "ytdl-core": "^0.13.3"
+  }
+}
