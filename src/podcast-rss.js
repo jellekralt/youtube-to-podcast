@@ -44,8 +44,11 @@ module.exports = function generateRSS(data, feedUrl, host) {
             description: mediaGroup['media:description'][0],
             url: `${host}/audio/${id}/podcast.mp3`,
             guid: id,
-            date: 'May 27, 2012', // any format that js Date can parse.
-
+            date: 'May 1, 2017', // any format that js Date can parse.
+            enclosure: {
+                'url'  : `${host}/audio/${id}/podcast.mp3`,
+                'type' : 'audio/mpeg'
+            },
             custom_elements: [
                 {'itunes:author': entry.author[0].name[0]},
                 {'itunes:summary': mediaGroup['media:description'][0]},
