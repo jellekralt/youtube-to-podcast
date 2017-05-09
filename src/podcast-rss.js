@@ -1,30 +1,29 @@
 const RSS = require('rss');
 
 module.exports = function generateRSS(data, feedUrl, host) {
+    let playlist = data[0];
+    let podcasts = data[1];
 
-    let feed = data.feed;
-    let author = feed.author[0].name[0];
-
-    let podcast = new RSS({
-        title: data.feed.title[0],
-        description: `YouTube Playlist: ${data.feed.title[0]}`,
+    let rss = new RSS({
+        title: playlist.title,
+        description: playlist.description || `YouTube Playlist: ${playlist.title}`,
         feed_url: feedUrl,
         categories: ['YouTube'],
-        pubDate: new Date(feed.published[0]),
+        pubDate: new Date(playlist.publishedAt),
         ttl: '60',
         custom_namespaces: {
            'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'
         },
         custom_elements: [
             {'itunes:subtitle': 'YouTube Playlist'},
-            {'itunes:author': author},
-            {'itunes:summary': `YouTube Playlist: ${data.feed.title[0]}`},
+            {'itunes:author': playlist.channelTitle},
+            {'itunes:summary': playlist.description || `YouTube Playlist: ${playlist.title}`},
             {'itunes:owner': [
-                {'itunes:name': author}
+                {'itunes:name': playlist.channelTitle}
             ]},
             {'itunes:image': {
                 _attr: {
-                    href: 'https://www.youtube.com/yt/brand/media/image/YouTube-icon-full_color.png'
+                    href: getBestThumbnailUrl(playlist.thumbnails)
                 }
             }},
             {'itunes:category': [
@@ -34,34 +33,45 @@ module.exports = function generateRSS(data, feedUrl, host) {
             ]}
         ]
     });
+ 
+    podcasts.forEach((podcast) => {
 
-    feed.entry.forEach((entry) => {
-        var mediaGroup = entry['media:group'][0];
-        var id = entry['yt:videoId'][0];
-        
-        podcast.item({
-            title: entry.title[0],
-            description: mediaGroup['media:description'][0],
-            url: `${host}/audio/${id}/podcast.mp3`,
-            guid: id,
-            date: 'May 1, 2017', // any format that js Date can parse.
+        rss.item({
+            title: podcast.title,
+            description: podcast.description,
+            url: `http://youtube.com/watch?v=${podcast.id}`,
+            guid: podcast.id,
+            date: podcast.addedAt,
             enclosure: {
-                'url'  : `${host}/audio/${id}/podcast.mp3`,
+                'url'  : `${host}/audio/${podcast.id}/podcast.mp3`,
                 'type' : 'audio/mpeg'
             },
             custom_elements: [
-                {'itunes:author': entry.author[0].name[0]},
-                {'itunes:summary': mediaGroup['media:description'][0]},
+                {'itunes:author': podcast.channelTitle},
+                {'itunes:summary': podcast.description},
                 {'itunes:image': {
                     _attr: {
-                        href: mediaGroup['media:thumbnail'][0].$.url
+                        href: getBestThumbnailUrl(podcast.thumbnails)
                     }
-                }}
+                }},
+                {'itunes:duration': podcast.duration}
             ]
         });
     });
     
 
     // cache the xml to send to clients
-    return podcast.xml();
+    return rss.xml();
+}
+
+function getBestThumbnailUrl(thumbnails) {
+    if (thumbnails.maxres) {
+        return thumbnails.maxres.url;
+    } else if (thumbnails.high) {
+        return thumbnails.high.url;
+    } else if (thumbnails.medium) {
+        return thumbnails.medium.url;
+    } else {
+        return thumbnails.default.url;
+    }
 }

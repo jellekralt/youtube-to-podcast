@@ -7,8 +7,10 @@
   "author": "Jelle Kralt <jelle@jellekralt.nl>",
   "license": "MIT",
   "dependencies": {
+    "bluebird": "^3.5.0",
     "express": "^4.15.2",
     "fluent-ffmpeg": "^2.1.2",
+    "googleapis": "^19.0.0",
     "rss": "^1.2.2",
     "xml2js": "^0.4.17",
     "ytdl-core": "^0.13.3"
