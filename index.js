@@ -19,6 +19,8 @@ const generateRSS = require('./src/podcast-rss');
 const YouTube = require('./src/YouTube');
 
 var stream = require('stream');
+var parseRange = require('range-parser');
+var _ = require('underscore');
 
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
@@ -29,11 +31,103 @@ function getPlaylistData (id, callback) {
     ]);
 }
 
-app.get('/audio/:id/podcast.mp3', function (req, res) {
+const score = {
+    'aac': 10,
+    'vorbis': 5
+};
+
+app.get('/audio/:id', function (req, res) {
     let url = 'https://www.youtube.com/watch?v=' + req.params.id
-    let audio = ytdl(url, { filter: 'audioonly' });
-    
-    audio.pipe(res);
+
+    ytdl.getInfo(url).then((info) => {
+
+        let format = info.formats.filter((format) => !format.bitrate && format.audioBitrate && format.audioEncoding === 'aac')[0];
+        let range; 
+
+        settings = { format: format }
+
+        if (req.headers.range ) {
+            let start = parseInt(req.headers.range.replace('bytes=', '').split('-')[0])
+            let end = parseInt(req.headers.range.replace('bytes=', '').split('-')[1]) || -1
+
+            range = { start: start, end: end };
+
+            if (req.headers.range !== 'bytes=0-1') {
+                settings.range = range;
+            }
+        }
+
+        console.log(range);
+        console.log(format.audioEncoding);
+        console.log(req.headers);
+        console.log('---------------------')
+
+        let audio = ytdl(url, settings)
+            .on('response', (response) => {
+
+console.log(response.headers);
+                if (!_.isUndefined(response.headers['content-length'])) {
+
+                    let totalSize = parseInt(response.headers['content-length'], 10);
+                    if (!_.isUndefined(range)) {
+
+                        console.log('range');
+
+                        let partialstart = req.headers.range.replace('bytes=', '').split('-')[0]
+                        let partialend = req.headers.range.replace('bytes=', '').split('-')[1] || false;
+
+                            
+
+
+                        let start = parseInt(partialstart, 10);
+                        //Temporary fix for wrong content-length
+                        if (start != 0) {
+
+                            totalSize += start;
+                        }
+                        let end = partialend ? parseInt(partialend, 10) : totalSize - 1;
+                        let chunksize = (end - start) + 1;
+
+                        if (start <= totalSize) {
+
+                            res.writeHead(206, {
+                                'Content-Range': 'bytes ' + start + '-' + end + '/' + totalSize,
+                                'Accept-Ranges': 'bytes',
+                                'Content-Length': chunksize,
+                                'Content-Type': response.headers['content-type'],
+                                "connection":"keep-alive",
+                                "accept-ranges":"bytes"
+                            });
+                            console.log({
+                                'Content-Range': 'bytes ' + start + '-' + end + '/' + totalSize,
+                                'Accept-Ranges': 'bytes',
+                                'Content-Length': chunksize,
+                                'Content-Type': response.headers['content-type'],
+                                "connection":"keep-alive",
+                                "accept-ranges":"bytes"
+                            });
+                        } else {
+                            
+                            res.writeHead(416, {});
+                        }
+                    } else {
+                        console.log('normal');
+                        console.log(totalSize);
+                        res.writeHead(200, {
+                            'Content-Length': totalSize,
+                            'Content-Type': response.headers['content-type'],
+                            "connection":"keep-alive",
+                            "accept-ranges":"bytes"
+                        });
+                    }
+                }
+            });
+
+        res.set("Cache-Control", "no-cache");
+        
+        audio.pipe(res);
+
+    })
 });
 
 app.get('/podcast/:id/feed.rss', function(req, res) {
@@ -60,4 +154,13 @@ function parsePaylistXML(xml, cb) {
     parseString(xml, function (err, data) {
         cb(err, data);
     });
+}
+
+function pbcopy(data) {
+    var proc = require('child_process').spawn('pbcopy');
+    if (typeof data !== 'string') {
+        data = JSON.stringify(data);
+    }
+    proc.stdin.write(data);
+    proc.stdin.end();
 }

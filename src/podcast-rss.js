@@ -43,7 +43,7 @@ module.exports = function generateRSS(data, feedUrl, host) {
             guid: podcast.id,
             date: podcast.addedAt,
             enclosure: {
-                'url'  : `${host}/audio/${podcast.id}/podcast.mp3`,
+                'url'  : `${host}/audio/${podcast.id}`,
                 'type' : 'audio/mpeg'
             },
             custom_elements: [
