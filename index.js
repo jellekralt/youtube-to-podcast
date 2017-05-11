@@ -1,5 +1,6 @@
 const https = require('https');
 const fs = require('fs');
+const path = require('path');
 const express = require('express')
 const app = express()
 const Stream = require('stream');
@@ -17,6 +18,8 @@ const generateRSS = require('./src/podcast-rss');
 
 const YouTube = require('./src/YouTube');
 
+var stream = require('stream');
+
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 function getPlaylistData (id, callback) {
@@ -27,19 +30,10 @@ function getPlaylistData (id, callback) {
 }
 
 app.get('/audio/:id/podcast.mp3', function (req, res) {
-    let audio = ytdl('https://www.youtube.com/watch?v=' + req.params.id, { filter: 'audioonly' });
-
+    let url = 'https://www.youtube.com/watch?v=' + req.params.id
+    let audio = ytdl(url, { filter: 'audioonly' });
+    
     audio.pipe(res);
-
-    // ffmpeg(audio)
-    //     .audioCodec('libmp3lame')
-    //     .audioBitrate(128)
-    //     .format('mp3')
-    //     .on('error', (err) => console.error(err))
-    //     .on('end', () => console.log('Finished!'))
-    //     .pipe(res, {
-    //         end: true
-    //     });
 });
 
 app.get('/podcast/:id/feed.rss', function(req, res) {
