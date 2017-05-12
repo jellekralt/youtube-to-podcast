@@ -10,10 +10,10 @@ const stream = require('stream');
 const parseRange = require('range-parser');
 const _ = require('underscore');
 
-const generateRSS = require('./src/PodcastRSS');
+const generateRSS = require('./src/podcast-rss');
 const YouTube = require('./src/YouTube');
 
-const app = express()
+const app = express();
 const parseString = xml2js.parseString;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
