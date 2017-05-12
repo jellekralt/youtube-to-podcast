@@ -51,7 +51,7 @@ module.exports = class YouTube {
                     Promise.all(data.items.map((item) => {
                         return this.getVideo(item.snippet.resourceId.videoId, item.snippet.publishedAt);
                     })).then((videos) => {
-                        resolve(videos)
+                        resolve(videos);
                     });
                 }
             });
@@ -72,7 +72,10 @@ module.exports = class YouTube {
                     let video = data.items[0];
                     let durationParts = video.contentDetails.duration.match(/(\d+)(?=[MHS])/ig)||[]; 
                     let duration = durationParts.map((item) => {
-                        if (item.length < 2) return '0' + item;
+                        if (item.length < 2) {
+                            return '0' + item;
+                        }
+
                         return item;
                     }).join(':');
 
@@ -90,4 +93,4 @@ module.exports = class YouTube {
         });
     }
 
-}
+};

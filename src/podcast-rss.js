@@ -4,6 +4,7 @@ module.exports = function generateRSS(data, feedUrl, host) {
     let playlist = data[0];
     let podcasts = data[1];
 
+    /*jshint camelcase: false */
     let rss = new RSS({
         title: playlist.title,
         description: playlist.description || `YouTube Playlist: ${playlist.title}`,
@@ -62,7 +63,7 @@ module.exports = function generateRSS(data, feedUrl, host) {
 
     // cache the xml to send to clients
     return rss.xml();
-}
+};
 
 function getBestThumbnailUrl(thumbnails) {
     if (thumbnails.maxres) {

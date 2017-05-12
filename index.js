@@ -14,13 +14,7 @@ const generateRSS = require('./src/podcast-rss');
 const YouTube = require('./src/YouTube');
 
 const app = express();
-const parseString = xml2js.parseString;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
-
-const score = {
-    'aac': 10,
-    'vorbis': 5
-};
 
 // TODO: Clean up
 app.get('/audio/:id', function (req, res) {
@@ -34,8 +28,8 @@ app.get('/audio/:id', function (req, res) {
         settings = { format: format };
 
         if (req.headers.range ) {
-            let start = parseInt(req.headers.range.replace('bytes=', '').split('-')[0])
-            let end = parseInt(req.headers.range.replace('bytes=', '').split('-')[1]) || -1
+            let start = parseInt(req.headers.range.replace('bytes=', '').split('-')[0]);
+            let end = parseInt(req.headers.range.replace('bytes=', '').split('-')[1]) || -1;
 
             range = { start: start, end: end };
 
@@ -56,11 +50,11 @@ app.get('/audio/:id', function (req, res) {
                         let partialend = range.end > -1 ? range.end : false;
                         let start = parseInt(partialstart, 10);
 
-                        //Temporary fix for wrong content-length
-                        if (start != 0) {
-
+                        // Fix for wrong content-length from ytdl-core
+                        if (start !== 0) {
                             totalSize += start;
                         }
+
                         let end = partialend ? parseInt(partialend, 10) : totalSize - 1;
                         let chunksize = (end - start) + 1;
 
@@ -90,7 +84,7 @@ app.get('/audio/:id', function (req, res) {
                 }
             });
 
-        res.set("Cache-Control", "no-cache");
+        res.set('Cache-Control', 'no-cache');
         
         audio.pipe(res);
 
@@ -98,19 +92,17 @@ app.get('/audio/:id', function (req, res) {
 });
 
 app.get('/podcast/:id/feed.rss', function(req, res) {
-
     let playlistUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${req.params.id}`;
     let host = req.protocol + '://' + req.get('host');
     let fullUrl = host + req.originalUrl;
 
     getPlaylistData(req.params.id).then((data) => {
-        res.set({ 'content-type': 'application/xml; charset=utf-8' })
+        res.set({ 'content-type': 'application/xml; charset=utf-8' });
         res.send(generateRSS(data, fullUrl, host));
         res.end();
     }, (err) => {
         throw err;
     });
-    
 });
 
 app.listen(5000, function () {
@@ -123,10 +115,4 @@ function getPlaylistData (id, callback) {
         youtube.getPlaylist(id),
         youtube.getVideos(id)
     ]);
-}
-
-function parsePaylistXML(xml, cb) {
-    parseString(xml, function (err, data) {
-        cb(err, data);
-    });
 }
