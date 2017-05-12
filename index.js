@@ -1,118 +1,110 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const express = require('express')
+const express = require('express');
 const Stream = require('stream');
 const Promise = require('bluebird');
-const xml2js = require('xml2js')
+const xml2js = require('xml2js');
 const ytdl = require('ytdl-core');
 const stream = require('stream');
 const parseRange = require('range-parser');
-const _ = require('underscore');
 
-const generateRSS = require('./src/podcast-rss');
+const PodcastRSS = require('./src/PodcastRSS');
 const YouTube = require('./src/YouTube');
+const RangeUtils = require('./src/RangeUtils');
 
 const app = express();
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
 
 // TODO: Clean up
 app.get('/audio/:id', function (req, res) {
-    let url = `https://www.youtube.com/watch?v=${req.params.id}`
+    let url = `https://www.youtube.com/watch?v=${req.params.id}`;
 
+    // Fetch YouTube video info
     ytdl.getInfo(url).then((info) => {
 
         let format = info.formats.filter((format) => !format.bitrate && format.audioBitrate && format.audioEncoding === 'aac')[0];
-        let range; 
+        let settings = { format: format };
+        let range;
 
-        settings = { format: format };
-
-        if (req.headers.range ) {
-            let start = parseInt(req.headers.range.replace('bytes=', '').split('-')[0]);
-            let end = parseInt(req.headers.range.replace('bytes=', '').split('-')[1]) || -1;
-
-            range = { start: start, end: end };
+        if (req.headers.range) {
+            range = RangeUtils.parse(req.headers.range);
 
             if (req.headers.range !== 'bytes=0-1') {
                 settings.range = range;
             }
         }
 
-        let audio = ytdl(url, settings)
-            .on('response', (response) => {
+        let audio = ytdl(url, settings).on('response', (response) => {
+            // Check if content length is available
+            if ('content-length' in response.headers) {
+                let totalSize = parseInt(response.headers['content-length'], 10);
 
-                if (!_.isUndefined(response.headers['content-length'])) {
+                if (range) {
+                    let start = parseInt(range.start, 10);
+                    let end = range.end > -1 ? range.end : totalSize - 1;
+                    let chunksize = (end - start) + 1;
 
-                    let totalSize = parseInt(response.headers['content-length'], 10);
-                    if (!_.isUndefined(range)) {
-
-                        let partialstart = range.start
-                        let partialend = range.end > -1 ? range.end : false;
-                        let start = parseInt(partialstart, 10);
-
-                        // Fix for wrong content-length from ytdl-core
-                        if (start !== 0) {
-                            totalSize += start;
-                        }
-
-                        let end = partialend ? parseInt(partialend, 10) : totalSize - 1;
-                        let chunksize = (end - start) + 1;
-
-                        if (start <= totalSize) {
-
-                            res.writeHead(206, {
-                                'Content-Range': 'bytes ' + start + '-' + end + '/' + totalSize,
-                                'Accept-Ranges': 'bytes',
-                                'Content-Length': chunksize,
-                                'Content-Type': response.headers['content-type'],
-                                "connection":"keep-alive",
-                                "accept-ranges":"bytes"
-                            });
-                           
-                        } else {
-                            
-                            res.writeHead(416, {});
-                        }
-                    } else {
-                        res.writeHead(200, {
-                            'Content-Length': totalSize,
-                            'Content-Type': response.headers['content-type'],
-                            "connection":"keep-alive",
-                            "accept-ranges":"bytes"
-                        });
+                    // Fix for wrong content-length from ytdl-core
+                    if (start !== 0) {
+                        totalSize += start;
                     }
-                }
-            });
 
+                    // Check if the start is smaller that the total size
+                    if (start <= totalSize) {
+                        res.writeHead(206, {
+                            'Content-Range': `bytes ${start}-${end}/${totalSize}`,
+                            'Accept-Ranges': 'bytes',
+                            'Content-Length': chunksize,
+                            'Content-Type': response.headers['content-type'],
+                            'Connection': 'keep-alive'
+                        });
+                        
+                    } else {
+                        // Return 416 (Requested Range Not Satisfiable) if start is outside possible range
+                        res.writeHead(416, {});
+                    }
+                } else {
+                    // If no range was passed, just set the full content length
+                    res.writeHead(200, {
+                        'Content-Length': totalSize,
+                        'Content-Type': response.headers['content-type'],
+                        'Connection': 'keep-alive',
+                        'Accept-Ranges': 'bytes'
+                    });
+                }
+            }
+        });
+
+        // Bust cache
         res.set('Cache-Control', 'no-cache');
         
         audio.pipe(res);
 
-    })
+    }).catch((err) => {
+        console.error(err);
+    });
 });
 
 app.get('/podcast/:id/feed.rss', function(req, res) {
+    let id = req.params.id;
     let playlistUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${req.params.id}`;
     let host = req.protocol + '://' + req.get('host');
     let fullUrl = host + req.originalUrl;
 
-    getPlaylistData(req.params.id).then((data) => {
+    Promise.all([
+        youtube.getPlaylist(id),
+        youtube.getVideos(id)
+    ]).then((data) => {
         res.set({ 'content-type': 'application/xml; charset=utf-8' });
-        res.send(generateRSS(data, fullUrl, host));
+        res.send(PodcastRSS.generate(data, fullUrl, host));
         res.end();
-    }, (err) => {
+    }).catch((err) => {
+        console.error(err);
         throw err;
     });
 });
 
 app.listen(5000, function () {
-  console.log('Example app listening on port 5000!')
+  console.log('Example app listening on port 5000!');
 });
-
-// TODO: Move!
-function getPlaylistData (id, callback) {
-    return Promise.all([
-        youtube.getPlaylist(id),
-        youtube.getVideos(id)
-    ]);
-}

@@ -7,7 +7,7 @@
   "author": "Jelle Kralt <jelle@jellekralt.nl>",
   "license": "MIT",
   "scripts": {
-    "lint": "./node_modules/jshint/bin/jshint src/*.js"
+    "lint": "./node_modules/jshint/bin/jshint index.js src/*.js"
   },
   "dependencies": {
     "bluebird": "^3.5.0",
