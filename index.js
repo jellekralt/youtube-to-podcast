@@ -2,42 +2,29 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const express = require('express')
-const app = express()
 const Stream = require('stream');
 const Promise = require('bluebird');
-
 const xml2js = require('xml2js')
-const parseString = xml2js.parseString;
-
-const ffmpeg = require('fluent-ffmpeg');
-const command = ffmpeg();
-
 const ytdl = require('ytdl-core');
+const stream = require('stream');
+const parseRange = require('range-parser');
+const _ = require('underscore');
 
-const generateRSS = require('./src/podcast-rss');
-
+const generateRSS = require('./src/PodcastRSS');
 const YouTube = require('./src/YouTube');
 
-var stream = require('stream');
-var parseRange = require('range-parser');
-var _ = require('underscore');
-
+const app = express()
+const parseString = xml2js.parseString;
 const youtube = new YouTube(process.env.YOUTUBE_API_KEY);
-
-function getPlaylistData (id, callback) {
-    return Promise.all([
-        youtube.getPlaylist(id),
-        youtube.getVideos(id)
-    ]);
-}
 
 const score = {
     'aac': 10,
     'vorbis': 5
 };
 
+// TODO: Clean up
 app.get('/audio/:id', function (req, res) {
-    let url = 'https://www.youtube.com/watch?v=' + req.params.id
+    let url = `https://www.youtube.com/watch?v=${req.params.id}`
 
     ytdl.getInfo(url).then((info) => {
 
@@ -57,29 +44,18 @@ app.get('/audio/:id', function (req, res) {
             }
         }
 
-        console.log(range);
-        console.log(format.audioEncoding);
-        console.log(req.headers);
-        console.log('---------------------')
-
         let audio = ytdl(url, settings)
             .on('response', (response) => {
 
-console.log(response.headers);
                 if (!_.isUndefined(response.headers['content-length'])) {
 
                     let totalSize = parseInt(response.headers['content-length'], 10);
                     if (!_.isUndefined(range)) {
 
-                        console.log('range');
-
-                        let partialstart = req.headers.range.replace('bytes=', '').split('-')[0]
-                        let partialend = req.headers.range.replace('bytes=', '').split('-')[1] || false;
-
-                            
-
-
+                        let partialstart = range.start
+                        let partialend = range.end > -1 ? range.end : false;
                         let start = parseInt(partialstart, 10);
+
                         //Temporary fix for wrong content-length
                         if (start != 0) {
 
@@ -98,21 +74,12 @@ console.log(response.headers);
                                 "connection":"keep-alive",
                                 "accept-ranges":"bytes"
                             });
-                            console.log({
-                                'Content-Range': 'bytes ' + start + '-' + end + '/' + totalSize,
-                                'Accept-Ranges': 'bytes',
-                                'Content-Length': chunksize,
-                                'Content-Type': response.headers['content-type'],
-                                "connection":"keep-alive",
-                                "accept-ranges":"bytes"
-                            });
+                           
                         } else {
                             
                             res.writeHead(416, {});
                         }
                     } else {
-                        console.log('normal');
-                        console.log(totalSize);
                         res.writeHead(200, {
                             'Content-Length': totalSize,
                             'Content-Type': response.headers['content-type'],
@@ -150,17 +117,16 @@ app.listen(5000, function () {
   console.log('Example app listening on port 5000!')
 });
 
+// TODO: Move!
+function getPlaylistData (id, callback) {
+    return Promise.all([
+        youtube.getPlaylist(id),
+        youtube.getVideos(id)
+    ]);
+}
+
 function parsePaylistXML(xml, cb) {
     parseString(xml, function (err, data) {
         cb(err, data);
     });
-}
-
-function pbcopy(data) {
-    var proc = require('child_process').spawn('pbcopy');
-    if (typeof data !== 'string') {
-        data = JSON.stringify(data);
-    }
-    proc.stdin.write(data);
-    proc.stdin.end();
 }
