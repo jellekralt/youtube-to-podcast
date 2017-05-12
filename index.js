@@ -31,7 +31,7 @@ app.get('/audio/:id', function (req, res) {
         let format = info.formats.filter((format) => !format.bitrate && format.audioBitrate && format.audioEncoding === 'aac')[0];
         let range; 
 
-        settings = { format: format }
+        settings = { format: format };
 
         if (req.headers.range ) {
             let start = parseInt(req.headers.range.replace('bytes=', '').split('-')[0])
