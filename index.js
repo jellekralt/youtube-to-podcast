@@ -88,7 +88,6 @@ app.get('/audio/:id', function (req, res) {
 
 app.get('/podcast/:id/feed.rss', function(req, res) {
     let id = req.params.id;
-    let playlistUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${req.params.id}`;
     let host = req.protocol + '://' + req.get('host');
     let fullUrl = host + req.originalUrl;
 
@@ -108,3 +107,5 @@ app.get('/podcast/:id/feed.rss', function(req, res) {
 app.listen(5000, function () {
   console.log('Example app listening on port 5000!');
 });
+
+module.exports = app;

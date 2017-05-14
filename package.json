@@ -7,6 +7,8 @@
   "author": "Jelle Kralt <jelle@jellekralt.nl>",
   "license": "MIT",
   "scripts": {
+    "start": "node index",
+    "test": "./node_modules/mocha/bin/mocha test/*.js",
     "lint": "./node_modules/jshint/bin/jshint index.js src/*.js"
   },
   "dependencies": {
@@ -21,6 +23,10 @@
     "ytdl-core": "^0.13.3"
   },
   "devDependencies": {
-    "jshint": "^2.9.4"
+    "chai": "^3.5.0",
+    "jshint": "^2.9.4",
+    "mocha": "^3.3.0",
+    "sinon": "^2.2.0",
+    "supertest": "^3.0.0"
   }
 }
