@@ -2,12 +2,12 @@ const request = require('supertest');
 const express = require('express');
 const chai = require('chai');
 const sinon = require('sinon');
+const parseString = require('xml2js').parseString;
 
 const expect = chai.expect;
 
 const app = require('../index');
 const YouTube = require('../src/YouTube');
-
 
 describe('/podcast/:id/feed.rss', function() {
     let getPlaylistStub;
@@ -31,11 +31,18 @@ describe('/podcast/:id/feed.rss', function() {
         ]);
     });
 
-    it('should return xml', function(done) {
+    it('should return valid xml', function(done) {
         request(app)
             .get('/podcast/1337/feed.rss')
             .set('Accept', 'application/json')
             .expect('Content-Type', /xml/)
+            .expect((response) => {
+                // Parse XML and check validity
+                parseString(response.text, (err, result) => {
+                    expect(err).to.be.null;
+                    expect(result.rss.channel).to.have.lengthOf(1);
+                });
+            })
             .expect(200)
             .end(done);
     });

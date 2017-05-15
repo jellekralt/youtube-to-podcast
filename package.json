@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node index",
-    "test": "./node_modules/mocha/bin/mocha test/*.js",
+    "test": "NODE_ENV=test ./node_modules/mocha/bin/mocha test/*.js",
     "lint": "./node_modules/jshint/bin/jshint index.js src/*.js"
   },
   "dependencies": {
@@ -19,14 +19,15 @@
     "range-parser": "^1.2.0",
     "rss": "^1.2.2",
     "underscore": "^1.8.3",
-    "xml2js": "^0.4.17",
     "ytdl-core": "^0.13.3"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "jshint": "^2.9.4",
     "mocha": "^3.3.0",
+    "proxyquire": "^1.7.11",
     "sinon": "^2.2.0",
-    "supertest": "^3.0.0"
+    "supertest": "^3.0.0",
+    "xml2js": "^0.4.17"
   }
 }

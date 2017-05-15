@@ -1,10 +1,7 @@
 const RSS = require('rss');
 
 module.exports = {
-    generate: function generateRSS(data, feedUrl, host) {
-        let playlist = data[0];
-        let podcasts = data[1];
-
+    generate: function generateRSS(playlist, podcasts, feedUrl, host) {
         /*jshint camelcase: false */
         let rss = new RSS({
             title: playlist.title,

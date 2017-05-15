@@ -69,7 +69,6 @@ app.get('/audio/:id', function (req, res) {
                     res.writeHead(200, {
                         'Content-Length': totalSize,
                         'Content-Type': response.headers['content-type'],
-                        'Connection': 'keep-alive',
                         'Accept-Ranges': 'bytes'
                     });
                 }
@@ -95,8 +94,11 @@ app.get('/podcast/:id/feed.rss', function(req, res) {
         youtube.getPlaylist(id),
         youtube.getVideos(id)
     ]).then((data) => {
+        let playlist = data[0];
+        let podcasts = data[1];
+
         res.set({ 'content-type': 'application/xml; charset=utf-8' });
-        res.send(PodcastRSS.generate(data, fullUrl, host));
+        res.send(PodcastRSS.generate(playlist, podcasts, fullUrl, host));
         res.end();
     }).catch((err) => {
         console.error(err);
@@ -104,8 +106,10 @@ app.get('/podcast/:id/feed.rss', function(req, res) {
     });
 });
 
-app.listen(5000, function () {
-  console.log('Example app listening on port 5000!');
-});
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(5000, function () {
+        console.log('YT2PC listening on port 5000!');
+    });
+}
 
 module.exports = app;
